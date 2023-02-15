@@ -8,7 +8,7 @@
 
 bool starting_position(int read_fd, int write_fd)
 {
-    // We want to *seqientially* exchange messages
+    // We want to *seqentially* exchange messages
     // We need to select the first process to write the message
     // It will be the process with the biggest PID.
     pid_t current_pid = getpid(), other_pid;
