@@ -38,9 +38,9 @@ int main(int argc, char *argv[]) {
   }
 
   // We use semaphores as mutexes
-  // 0 - Read semaphore (Server blocks on it untill it is 0)
-  // 1 - Write semaphore (Client blocks on it untill it is 1)
-  // This might be clumsy but it works (?)
+  // 0 - Read semaphore (Server blocks on it until it is 0)
+  // 1 - Write semaphore (Client blocks on it untillit is 1)
+  // This might be clumsy but it works
   union semun arg;
   arg.val = 1;
   if (semctl(sem_id, 0, SETVAL, arg) == -1) {
