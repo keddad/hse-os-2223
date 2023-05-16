@@ -1,12 +1,4 @@
-#include <fcntl.h>
-#include <malloc.h>
-#include <semaphore.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "shared.h"
 
 #define MAX_TITLE_SIZE 2048
 
