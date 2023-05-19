@@ -83,8 +83,7 @@ int main(int argc, char *argv[]) {
 
     char message_buffer[65536];
 
-    int read_size =
-        recv(new_fd, message_buffer, sizeof(message_buffer), MSG_WAITALL);
+    int read_size = recv(new_fd, message_buffer, sizeof(message_buffer), 0);
 
     if (read_size == -1) {
       perror("recv failed");
@@ -111,7 +110,11 @@ int main(int argc, char *argv[]) {
     }
 
     if (message_buffer[0] == 1) { // get view request
-      perror("Not implemented");
+      printf("Got index request!\n");
+      size_t bytes_wrote = serializeLibrary(library, message_buffer);
+
+      write(new_fd, message_buffer, bytes_wrote);
+      continue;
     }
 
     close(new_fd);

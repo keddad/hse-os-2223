@@ -15,3 +15,6 @@ target_link_libraries(server liblibrary)
 
 add_executable(client client.c)
 target_link_libraries(client liblibrary)
+
+add_executable(observer observer.c)
+target_link_libraries(observer liblibrary)

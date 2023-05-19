@@ -68,7 +68,11 @@ int sendBook(Book *book, char *hostname) {
   buf[0] = 0;
 
   size_t wrote_bytes = serializeBook(book, buf + 1);
-  write(sockfd, buf, wrote_bytes + 1);
+  int wrote = write(sockfd, buf, wrote_bytes + 1);
+
+  if (wrote == -1) {
+    return 1;
+  }
 
   close(sockfd);
   return 0;
@@ -128,7 +132,13 @@ int main(int argc, char *argv[]) {
 
         printBook(book, stdout);
 
-        sendBook(book, argv[1]);
+        int res = sendBook(book, argv[1]);
+
+        if (res != 0) {
+          printf("Server is dead!\n");
+          return 1;
+        }
+
         freeBook(book);
 
         cur += 1;
