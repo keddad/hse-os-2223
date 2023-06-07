@@ -48,7 +48,7 @@ size_t deserializeLibrary(Library **library, void *source) {
 
   new_library->n = *int_ptr;
   int_ptr++;
-  
+
   new_library->books = malloc(sizeof(Book *) * new_library->n);
 
   size_t used_space = sizeof(int32_t);
@@ -82,6 +82,14 @@ int bookComparator(const void *a, const void *b) {
 }
 
 void addBook(Library *library, Book *book) {
+  for (int i = 0; i < library->n; ++i) {
+    if (book->n == library->books[i]->n && book->m == library->books[i]->m &&
+        book->k == library->books[i]->k) {
+      // already added that book, but udp made an oopsie
+      return;
+    }
+  }
+
   library->n += 1;
   library->books = realloc(library->books, sizeof(Book *) * library->n);
 

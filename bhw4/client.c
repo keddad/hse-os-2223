@@ -1,3 +1,4 @@
+#include "hash.h"
 #include "liblibrary/book.h"
 
 #include <errno.h>
@@ -43,13 +44,36 @@ int sendBook(Book *book, char *hostname) {
   }
 
   char buf[65536];
-  buf[0] = 0;
+  buf[4] = 0;
+  size_t wrote_bytes = serializeBook(book, buf + 5);
 
-  size_t wrote_bytes = serializeBook(book, buf + 1);
+  crc32b(buf + 4, wrote_bytes + 1, buf);
+
   int wrote =
-      sendto(s, buf, wrote_bytes + 1, 0, (struct sockaddr *)&si_other, slen);
+      sendto(s, buf, wrote_bytes + 5, 0, (struct sockaddr *)&si_other, slen);
 
-  if (wrote != wrote_bytes + 1) {
+  if (wrote != wrote_bytes + 5) {
+    printf("Sendto fail\n");
+    return 1;
+  }
+
+  unsigned int expected_response_crc;
+  crc32b(buf, wrote_bytes + 5, &expected_response_crc);
+
+  // 2 second timeout to recive an answer
+  struct timeval read_timeout;
+  read_timeout.tv_sec = 2;
+  setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
+
+  int recv = recvfrom(s, buf, 65535, 0, (struct sockaddr *)&si_other, &slen);
+
+  if (recv != 4) {
+    printf("Recf fail\n");
+    return 1;
+  }
+
+  if (expected_response_crc != *((unsigned int *)buf)) {
+    printf("Recived unexpected CRC from server\n");
     return 1;
   }
 
@@ -118,7 +142,7 @@ int main(int argc, char *argv[]) {
             break;
           }
 
-          printf("Failed to send book. Retrying...");
+          printf("Failed to send book. Retrying...\n");
         }
 
         if (res != 0) {

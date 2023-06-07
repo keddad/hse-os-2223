@@ -1,4 +1,5 @@
 #include "liblibrary/library.h"
+#include "hash.h"
 
 #include <errno.h>
 #include <fts.h>
@@ -43,11 +44,13 @@ int reciveLibrary(Library **book, char *hostname) {
   }
 
   char buf[65536];
-  buf[0] = 1;
+  buf[4] = 1;
 
-  int wrote = sendto(s, buf, 1, 0, (struct sockaddr *)&si_other, slen);
+  crc32b(buf + 4, 1, &buf);
 
-  if (wrote != 1) {
+  int wrote = sendto(s, buf, 5, 0, (struct sockaddr *)&si_other, slen);
+
+  if (wrote != 5) {
     return 1;
   }
 
@@ -56,13 +59,21 @@ int reciveLibrary(Library **book, char *hostname) {
   read_timeout.tv_sec = 2;
   setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
 
-  int recv = recvfrom(s, buf, 65535, 0, (struct sockaddr *) &si_other, &slen);
+  int recv = recvfrom(s, buf, 65535, 0, (struct sockaddr *)&si_other, &slen);
 
-  if (recv == -1) {
+  if (recv < 4) {
     return 1;
   }
 
-  deserializeLibrary(book, buf);
+  unsigned int calculated_crc;
+  crc32b(buf + 4, recv - 4, &calculated_crc);
+
+  if (calculated_crc != *((unsigned int *)buf)) {
+    printf("CRC is broken, discarding\n");
+    return 1;
+  }
+
+  deserializeLibrary(book, buf + 4);
 
   return 0;
 }
@@ -87,7 +98,7 @@ int main(int argc, char *argv[]) {
         break;
       }
 
-      printf("Can't get info from server. Retrying");
+      printf("Can't get info from server. Retrying...\n");
     }
 
     if (res != 0) {

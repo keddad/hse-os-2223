@@ -13,6 +13,7 @@
 
 #include "liblibrary/book.h"
 #include "liblibrary/library.h"
+#include "hash.h"
 
 #define PORT 8080
 
@@ -62,23 +63,43 @@ int main(int argc, char *argv[]) {
 
     printf("Got a request of size %d\n", read_size);
 
-    if (message_buffer[0] == 0) { // add book request
-      Book *book = NULL;
-      deserializeBook(&book, message_buffer + 1);
+    if (read_size < 5) {
+      printf("Too small to be a valid request\n");
+      continue;
+    }
 
-      printf("Got a new book! ");
+    unsigned int calculated_crc;
+    crc32b(message_buffer+4, read_size - 4, &calculated_crc);
+
+    if (calculated_crc == *((unsigned int*) message_buffer)) {
+      printf("CRC is valid, processing\n");
+    } else {
+      printf("CRC is broken, discarding\n");
+    }
+
+    if (message_buffer[4] == 0) { // add book request
+      Book *book = NULL;
+      deserializeBook(&book, message_buffer + 5);
+
+      printf("Got a new book!\n");
       printBook(book, stdout);
       addBook(library, book);
 
       printLibrary(library, stdout);
+
+      unsigned int full_message_crc;
+      crc32b(message_buffer, read_size, &full_message_crc);
+
+      sendto(s, &full_message_crc, 4, 0, (struct sockaddr*) &si_other, slen);
       continue;
     }
 
-    if (message_buffer[0] == 1) { // get view request
+    if (message_buffer[4] == 1) { // get view request
       printf("Got index request!\n");
-      size_t bytes_wrote = serializeLibrary(library, message_buffer);
+      size_t bytes_wrote = serializeLibrary(library, message_buffer+4);
+      crc32b(message_buffer+4, bytes_wrote, message_buffer);
 
-      sendto(s, message_buffer, bytes_wrote, 0, (struct sockaddr*) &si_other, slen);
+      sendto(s, message_buffer, bytes_wrote + 4, 0, (struct sockaddr*) &si_other, slen);
       continue;
     }
   }
